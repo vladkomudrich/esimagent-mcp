@@ -1,0 +1,33 @@
+{
+  "name": "esimagent-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for eSIM Agent — search eSIM plans, compare providers, check device compatibility, and find deals through AI assistants",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "esimagent-mcp": "./dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "files": [
+    "dist",
+    "!dist/__tests__"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js",
+    "prepublishOnly": "npm run build",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.8.0",
+    "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
