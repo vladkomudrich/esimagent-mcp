@@ -17,15 +17,6 @@ Add to your MCP client configuration:
 }
 ```
 
-### Configuration Paths
-
-| Client | Config File |
-|---|---|
-| Claude Desktop | `~/Library/Application Support/Claude/claude_desktop_config.json` |
-| Claude Code | `~/.claude/claude_code_config.json` |
-| Cursor | `~/.cursor/mcp.json` |
-| Windsurf | `~/.windsurf/mcp.json` |
-
 ### Requirements
 
 - Node.js 18 or later
