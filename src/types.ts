@@ -14,6 +14,15 @@ export interface Plan {
   affiliateUrl: string;
   features: string[];
   isBestValue?: boolean;
+
+  matchScore?: number | null;
+  isExactDurationMatch?: boolean | null;
+  isExactDataMatch?: boolean | null;
+  valueScore?: number;
+
+  activePromoCode?: string | null;
+  discountApplied?: { type: "percentage" | "flat"; value: number } | null;
+  finalPriceUSD?: number;
 }
 
 export interface Provider {

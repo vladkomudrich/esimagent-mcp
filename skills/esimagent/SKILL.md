@@ -31,42 +31,66 @@ This is universal across every MCP server (Stripe, GitHub, Slack, etc.), not spe
 
 Available tools when the `esim-agent` MCP server is connected:
 
-- **search_esim_plans** `{country}` — Returns plans sorted by value with affiliate URLs
+- **search_esim_plans** `{country, minDays?, maxDays?, minGb?, maxGb?}` — Returns plans already ranked and deal-fused. Pass bands to get opinionated matches; omit them for the full catalog.
 - **list_providers** `{}` — All providers with ratings and features
 - **get_deals** `{}` — Active promo codes and discounts
 - **check_device_compatibility** `{device}` — eSIM support + installation steps
 - **list_supported_countries** `{search?}` — Country list (use to resolve ambiguous names)
 
+> The server computes `matchScore`, `isExactDurationMatch`, `isExactDataMatch`, and `valueScore`. Trust these over your own scoring. Plans are already sorted by relevance when filters are passed.
+
+> Data filters (`minGb`, `maxGb`) exclude unlimited plans. To find unlimited plans, omit data filters and look for `capacityMB === -1`.
+
 ## Mode B: HTTP API (direct)
 
 Base URL: `https://esimagent.vdigital.app/api`
 
-### GET /plans?country={ISO_CODE}
+### GET /plans?country={ISO_CODE}&minDays&maxDays&minGb&maxGb
 
-Returns `Plan[]` — all available plans for a country. You MUST filter and rank client-side.
+Returns `Plan[]` — plans for a country. Optional query params let the server filter and rank for you. You do NOT need to re-sort or re-score.
+
+Supported query params:
+- `country` (required) — ISO 3166-1 alpha-2 code
+- `minDays`, `maxDays` — integer days, 1..365 (plans outside the range are dropped)
+- `minGb`, `maxGb` — GB, 0..1000 (plans outside the range are dropped; unlimited plans are excluded when either is set)
+
+Validation errors return HTTP 400 with a Zod `issues` array.
 
 **Response shape:**
 ```json
 {
-  "id": "yesim-es--1-1-europe",
+  "id": "yesim-es-10240-10",
   "providerId": "yesim",
   "providerName": "Yesim",
   "providerLogo": "/logos/yesim.jpg",
   "country": "Spain",
   "countryCode": "ES",
-  "capacityMB": -1,
-  "capacityLabel": "Unlimited",
-  "periodDays": 1,
-  "priceUSD": 8.17,
+  "capacityMB": 10240,
+  "capacityLabel": "10 GB",
+  "periodDays": 10,
+  "priceUSD": 14.99,
   "priceCurrency": "EUR",
-  "priceOriginal": 7,
+  "priceOriginal": 13.50,
   "features": ["Instant activation", "4G/LTE"],
   "affiliateUrl": "https://yesim.app/...?partner_id=3116",
-  "isBestValue": true
+  "isBestValue": true,
+  "matchScore": 1,
+  "isExactDurationMatch": true,
+  "isExactDataMatch": true,
+  "valueScore": 683.12,
+  "activePromoCode": "SAVE10",
+  "discountApplied": { "type": "percentage", "value": 10 },
+  "finalPriceUSD": 13.49
 }
 ```
 
 `capacityMB: -1` means unlimited. Otherwise multiply by 1024 for GB.
+
+- `matchScore` ∈ [0, 1]: overall fit to the supplied filters. `null` when no filters are passed.
+- `isExactDurationMatch` / `isExactDataMatch`: `true` when the plan sits inside the requested band. `null` when the corresponding filter is not passed.
+- `valueScore`: always populated — higher is better. Used as the tiebreaker and the primary sort when no filters are passed.
+- `finalPriceUSD`: always populated — equals `priceUSD` when no deal applies, otherwise the post-deal price (rounded to 2 decimals).
+- `activePromoCode` / `discountApplied`: populated when a deal was fused in. `activePromoCode` may still be `null` even when a deal applies (some deals have no code).
 
 ### GET /deals
 Returns `Deal[]` with `promoCode`, `discountType` (percentage|flat), `discountValue`, `affiliateUrl`, `expiresAt`.
@@ -74,41 +98,48 @@ Returns `Deal[]` with `promoCode`, `discountType` (percentage|flat), `discountVa
 ### GET /providers
 Returns `Provider[]` with `rating`, `features`, `affiliateUrl`.
 
-## How to Filter & Rank Plans (CRITICAL)
+## How to Filter & Rank Plans
 
-The `/plans` endpoint returns ALL plans for a country — often 30-100+ results across multiple durations and data amounts. You MUST filter down to what the user asked for.
+The `/plans` endpoint already filters, deal-fuses, and ranks for you when you pass the right query params. Your job is to translate user intent into the right bands.
 
-### Step 1: Parse user intent into filters
+### Step 1: Parse user intent into server params
 
-| User says | Filter |
-|---|---|
-| "2 weeks", "14 days" | `periodDays >= 14 && periodDays <= 17` |
-| "1 week", "7 days" | `periodDays >= 7 && periodDays <= 10` |
-| "5 GB" | `capacityMB >= 5000 && capacityMB <= 7000` |
-| "10 GB" | `capacityMB >= 10000 && capacityMB <= 15000` |
-| "unlimited" | `capacityMB === -1` |
-| "cheap", "budget" | Sort by `priceUSD` ascending |
-| "no limit" | `capacityMB === -1 \|\| capacityMB >= 20000` |
+| User says | Server params | Kind |
+|---|---|---|
+| "2 weeks", "14 days" | `minDays=14&maxDays=15` | tight → fires `isExactDurationMatch` |
+| "1 week", "7 days" | `minDays=7&maxDays=8` | tight → fires `isExactDurationMatch` |
+| "10 days" | `minDays=10&maxDays=11` | tight → fires `isExactDurationMatch` |
+| "this month" | `minDays=14&maxDays=31` | **range** — `isExactDurationMatch` stays `false` but results are still ranked by `matchScore` |
+| "month-long" | `minDays=28&maxDays=31` | range (width 3) — exact flag will not fire, `matchScore` still ranks correctly |
+| "5 GB" | `minGb=5&maxGb=6` | tight → fires `isExactDataMatch` |
+| "10 GB" | `minGb=10&maxGb=11` | tight → fires `isExactDataMatch` |
+| "around 10 GB" | `minGb=8&maxGb=12` | range (width 4) — exact flag will not fire, matches still ranked |
+| "unlimited" | **Omit `minGb`/`maxGb`** — data filters exclude unlimited plans. Look for `capacityMB === -1` in the response. | — |
+| "cheap", "budget" | No data or duration filter — trust `valueScore` ordering | — |
+| "no limit" | Omit data filters. Unlimited will appear in the unfiltered list. | — |
 
-### Step 2: Rank and present 3 buckets
+> **Tight band rule:** `isExactDurationMatch` and `isExactDataMatch` fire only when BOTH bounds are set AND the band is narrow (duration: `maxDays − minDays ≤ 2`; data: `maxGb − minGb ≤ 2`). Single-sided bounds (`minDays` alone or `maxDays` alone) NEVER count as exact. This prevents loose range queries from being falsely labelled `[EXACT MATCH]`.
 
-Don't dump raw results. Return a curated summary:
+### Step 2: Read the server's ranking
 
-1. **Best exact match** — closest to the user's stated requirements
-2. **Best value** — lowest `priceUSD` per GB (skip unlimited for this)
-3. **Best unlimited** — cheapest unlimited plan for the same duration
+The response is pre-sorted:
+1. By `matchScore` descending (best fit first) when filters are present.
+2. By `valueScore` descending (best value first) when filters are absent.
+3. `isBestValue === true` is set on the top plan.
+
+Look for `[EXACT MATCH]` signals (`isExactDurationMatch === true && isExactDataMatch === true`) to highlight the tightest fits.
 
 ### Step 3: Present cleanly
 
-For each plan show: provider name, data (`capacityLabel`), duration (`periodDays`), price (`priceUSD`), and a buy link.
+For each plan show: provider name, data (`capacityLabel`), duration (`periodDays`), price (`priceUSD`), the post-deal price when different (`finalPriceUSD`), any active promo code (`activePromoCode`), and a buy link.
 
-The API returns an `affiliateUrl` field — this is a partner link that often applies a promotional discount negotiated with the provider (for example, some providers offer 5-25% off through partner links versus their public website). Use it as the default buy link because the listed `priceUSD` reflects that discounted rate. If the user prefers to visit the provider's public site directly or wants to compare prices without a referral parameter, mention the provider name clearly and the user can navigate there themselves.
+The API returns an `affiliateUrl` field — this is a partner link that often applies a promotional discount negotiated with the provider. Use it as the default buy link because the listed `priceUSD` reflects that discounted rate. If the user prefers to visit the provider's public site directly or wants to compare prices without a referral parameter, mention the provider name clearly and the user can navigate there themselves.
 
 Be transparent when asked: these links include a partner/referral parameter, which is how eSIM Agent funds the comparison service. No data is shared beyond a standard click-through.
 
-### Step 4: Cross-reference deals
+### Step 4: Cross-reference deals (optional)
 
-After showing plans, call `/deals` and mention any active promo codes that apply to the providers in your results.
+Deal information is already fused into each plan via `finalPriceUSD`, `activePromoCode`, and `discountApplied`. Call `/deals` only when the user wants the full deals list (not tied to specific plans).
 
 ## Country Resolution
 
@@ -177,27 +208,36 @@ If MCP tools aren't in your current session:
 **User:** "Find me an eSIM for 10 days in Spain, around 10 GB"
 
 **You should:**
-1. Call `GET /api/plans?country=ES`
-2. Filter: `periodDays` 7-15, `capacityMB` 10000-15000 (or unlimited)
-3. Sort by `priceUSD`
-4. Call `GET /api/deals`, match providers in results
-5. Present:
-   - Best match: [Provider] — 10 GB / 10 days / $X — [buy link]
-   - Best value: [Provider] — closest under budget
-   - Alternative unlimited: [Provider] — cheapest unlimited for ~10 days
-   - Note any active deals/promo codes
+1. Call `GET /api/plans?country=ES&minDays=10&maxDays=11&minGb=10&maxGb=11` — tight bands on both axes so exact-match flags can fire.
+2. The top result is already the best match. If `isExactDurationMatch` AND `isExactDataMatch` are both `true`, present it as an "exact match"; otherwise present the top result as the best fit.
+3. Present the top 1-3 results with provider, data, duration, price, and `finalPriceUSD`/`activePromoCode` when present.
+4. No need to call `/deals` — deal info is already fused.
 
 **User:** "Any cheap eSIMs for Thailand this month?"
 
 **You should:**
-1. Call `GET /api/deals` first
-2. Call `GET /api/plans?country=TH`
-3. Sort by `priceUSD` ascending, skip sub-3-day plans
-4. Present top 3 cheapest + matching promo codes
+1. Call `GET /api/plans?country=TH&minDays=14&maxDays=31` — this is a **range** query. Exact-match flags will stay `false` but `matchScore` still ranks in-range plans first and `valueScore` breaks ties.
+2. Sorted already — top results are the best matches on duration; `valueScore` handles the "cheap" intent.
+3. Present the top 3 with `finalPriceUSD` and any `activePromoCode`. Do NOT label these as `[EXACT MATCH]`.
+
+**User:** "Unlimited eSIM for a week in Japan"
+
+**You should:**
+1. Call `GET /api/plans?country=JP&minDays=7&maxDays=8` (note: NO data filters — data filters exclude unlimited; tight duration band so an exact duration match can still fire).
+2. Filter the response client-side to `capacityMB === -1` if you want only unlimited, or highlight the cheapest unlimited alongside the best finite match.
+
+**User:** "What's the cheapest eSIM for Mexico?"
+
+**You should:**
+1. Call `GET /api/plans?country=MX` (no filters).
+2. Results are sorted by `valueScore` — the first one is already the best value.
 
 ## What NOT to Do
 
 - Don't dump raw API responses — always filter, rank, and present cleanly
+- Don't re-rank server-side results; `matchScore` and `valueScore` are authoritative
+- Don't confuse a range query with an exact query: `isExactDurationMatch` and `isExactDataMatch` fire ONLY when the filter band is tight (≤ 2 days or ≤ 2 GB) AND both bounds are set. A loose query like "this month" (`minDays=14&maxDays=31`) will rank correctly by `matchScore` but the exact-match flags will stay `false` — that's correct, don't slap `[EXACT MATCH]` on in-range plans just because they're in range.
+- Don't set `minGb`/`maxGb` if the user wants unlimited — it will filter unlimited plans out
 - Don't use `providerId`/`countryCode` in user-facing output — use `providerName`/`country`
 - Don't hide the provider name or substitute the referral parameter with something else — users should always know who they're buying from
 - Don't refuse to show raw plan details or provider websites if the user explicitly asks for them

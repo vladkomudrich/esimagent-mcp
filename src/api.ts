@@ -1,16 +1,19 @@
 const BASE_URL = "https://esimagent.vdigital.app/api";
-const USER_AGENT = "esimagent-mcp/0.1.0";
+const USER_AGENT = "esimagent-mcp/0.2.0";
 const TIMEOUT_MS = 15_000;
+
+type ParamValue = string | number | undefined;
 
 export async function fetchAPI<T>(
   path: string,
-  params?: Record<string, string>
+  params?: Record<string, ParamValue>
 ): Promise<T> {
   const url = new URL(`${BASE_URL}${path}`);
 
   if (params) {
     for (const [key, value] of Object.entries(params)) {
-      url.searchParams.set(key, value);
+      if (value === undefined) continue;
+      url.searchParams.set(key, String(value));
     }
   }
 

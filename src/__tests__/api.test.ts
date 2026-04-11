@@ -46,7 +46,7 @@ describe("fetchAPI", () => {
 
     const calledOptions = mockFetch().mock.calls[0][1] as RequestInit;
     const headers = calledOptions.headers as Record<string, string>;
-    expect(headers["User-Agent"]).toBe("esimagent-mcp/0.1.0");
+    expect(headers["User-Agent"]).toBe("esimagent-mcp/0.2.0");
   });
 
   it("sets Accept header to application/json", async () => {

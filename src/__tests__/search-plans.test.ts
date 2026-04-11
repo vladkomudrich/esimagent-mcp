@@ -78,7 +78,90 @@ describe("searchPlans", () => {
 
     await searchPlans({ country: "Japan" });
 
-    expect(mockFetchAPI).toHaveBeenCalledWith("/plans", { country: "JP" });
+    expect(mockFetchAPI).toHaveBeenCalledWith(
+      "/plans",
+      expect.objectContaining({ country: "JP" })
+    );
+  });
+
+  it("forwards optional filter params to fetchAPI", async () => {
+    mockFetchAPI.mockResolvedValue([makePlan()]);
+
+    await searchPlans({
+      country: "JP",
+      minDays: 7,
+      maxDays: 10,
+      minGb: 4,
+      maxGb: 7,
+    });
+
+    expect(mockFetchAPI).toHaveBeenCalledWith("/plans", {
+      country: "JP",
+      minDays: 7,
+      maxDays: 10,
+      minGb: 4,
+      maxGb: 7,
+    });
+  });
+
+  it("renders [EXACT MATCH] when both exact flags are true", async () => {
+    const plans = [
+      makePlan({
+        providerName: "TightFit",
+        isExactDurationMatch: true,
+        isExactDataMatch: true,
+      }),
+    ];
+    mockFetchAPI.mockResolvedValue(plans);
+
+    const result = await searchPlans({ country: "JP" });
+
+    expect(result).toContain("TightFit [EXACT MATCH]");
+  });
+
+  it("renders promo code line when activePromoCode + finalPriceUSD present", async () => {
+    const plans = [
+      makePlan({
+        priceUSD: 10,
+        finalPriceUSD: 9,
+        activePromoCode: "SAVE10",
+      }),
+    ];
+    mockFetchAPI.mockResolvedValue(plans);
+
+    const result = await searchPlans({ country: "JP" });
+
+    expect(result).toContain("Promo Code: SAVE10");
+    expect(result).toContain("$9.00 final");
+  });
+
+  it("renders discounted price line when deal applies without a promo code", async () => {
+    const plans = [
+      makePlan({
+        priceUSD: 10,
+        finalPriceUSD: 8.5,
+        activePromoCode: null,
+      }),
+    ];
+    mockFetchAPI.mockResolvedValue(plans);
+
+    const result = await searchPlans({ country: "JP" });
+
+    expect(result).toContain("Discounted Price: $8.50");
+    expect(result).not.toContain("Promo Code");
+  });
+
+  it("handles legacy response shape without new fields", async () => {
+    const legacyPlan = makePlan({
+      // explicitly drop the new fields by omission — they're optional
+    });
+    mockFetchAPI.mockResolvedValue([legacyPlan]);
+
+    const result = await searchPlans({ country: "JP" });
+
+    expect(result).toContain("Airalo");
+    expect(result).not.toContain("Promo Code");
+    expect(result).not.toContain("[EXACT MATCH]");
   });
 
   it("caps plans at 20 and shows truncation message", async () => {
