@@ -19,6 +19,7 @@ export interface Plan {
   isExactDurationMatch?: boolean | null;
   isExactDataMatch?: boolean | null;
   valueScore?: number;
+  isClosestMatch?: boolean;
 
   activePromoCode?: string | null;
   discountApplied?: { type: "percentage" | "flat"; value: number } | null;

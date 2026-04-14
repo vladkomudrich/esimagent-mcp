@@ -10,6 +10,8 @@ export interface SearchPlansArgs {
   maxDays?: number;
   minGb?: number;
   maxGb?: number;
+  targetDays?: number;
+  targetGb?: number;
 }
 
 export async function searchPlans(args: SearchPlansArgs): Promise<string> {
@@ -35,6 +37,8 @@ export async function searchPlans(args: SearchPlansArgs): Promise<string> {
       maxDays: args.maxDays,
       minGb: args.minGb,
       maxGb: args.maxGb,
+      targetDays: args.targetDays,
+      targetGb: args.targetGb,
     });
 
     if (!plans || plans.length === 0) {
@@ -58,6 +62,8 @@ export async function searchPlans(args: SearchPlansArgs): Promise<string> {
       let badge = "";
       if (plan.isExactDurationMatch === true && plan.isExactDataMatch === true) {
         badge = " [EXACT MATCH]";
+      } else if (plan.isClosestMatch === true) {
+        badge = " [CLOSEST MATCH]";
       } else if (plan.isBestValue) {
         badge = " [BEST VALUE]";
       }

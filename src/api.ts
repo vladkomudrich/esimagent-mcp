@@ -1,5 +1,5 @@
 const BASE_URL = "https://esimagent.vdigital.app/api";
-const USER_AGENT = "esimagent-mcp/0.2.0";
+const USER_AGENT = "esimagent-mcp/0.3.0";
 const TIMEOUT_MS = 15_000;
 
 type ParamValue = string | number | undefined;

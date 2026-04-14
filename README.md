@@ -141,7 +141,7 @@ List countries where eSIM plans are available.
 
 All tools return purchase links that include a partner/referral parameter. These partner links often apply exclusive discounts negotiated with the providers (typically 5-25% off versus the public website). Prices shown in tool output already reflect the discounted rate.
 
-No user data is collected beyond a standard HTTP click-through. Users can always visit providers directly by name if they prefer.
+Tool invocations are logged server-side for service improvement (tool name, query parameters like country code, response counts). IP addresses are hashed before storage — no personal data is retained. Affiliate link clicks go through a tracked redirect that records the provider, plan, and country for attribution. Users can always visit providers directly by name if they prefer.
 
 ## Development
 

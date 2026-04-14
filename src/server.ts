@@ -14,7 +14,7 @@ export function createServer(): Server {
   const server = new Server(
     {
       name: "esimagent-mcp",
-      version: "0.2.0",
+      version: "0.3.0",
     },
     {
       capabilities: {
@@ -28,7 +28,7 @@ export function createServer(): Server {
       {
         name: "search_esim_plans",
         description:
-          "Search eSIM data plans for a specific country. Returns plans ranked by server-side relevance (matchScore, valueScore) with deal-fused finalPriceUSD and affiliate purchase links. Pass optional duration and data bands to get opinionated matches; omit bands to get the full catalog sorted by value. Data bands exclude unlimited plans — omit them to see unlimited.",
+          "Search eSIM data plans for a specific country. Returns plans ranked by server-side relevance (matchScore, valueScore) with deal-fused finalPriceUSD and affiliate purchase links. Pass optional duration/data bands for hard filters, or targetDays/targetGb as soft hints for closest-match ranking without excluding plans. Omit bands to get the full catalog sorted by value. Data bands exclude unlimited plans — omit them to see unlimited.",
         inputSchema: {
           type: "object" as const,
           properties: {
@@ -41,27 +41,41 @@ export function createServer(): Server {
               type: "integer",
               minimum: 1,
               maximum: 365,
-              description: "Minimum plan duration in days (inclusive)",
+              description: "Minimum plan duration in days (inclusive, hard filter)",
             },
             maxDays: {
               type: "integer",
               minimum: 1,
               maximum: 365,
-              description: "Maximum plan duration in days (inclusive)",
+              description: "Maximum plan duration in days (inclusive, hard filter)",
             },
             minGb: {
               type: "number",
               minimum: 0,
               maximum: 1000,
               description:
-                "Minimum plan data capacity in GB (inclusive). Setting this excludes unlimited plans.",
+                "Minimum plan data capacity in GB (inclusive, hard filter). Setting this excludes unlimited plans.",
             },
             maxGb: {
               type: "number",
               minimum: 0,
               maximum: 1000,
               description:
-                "Maximum plan data capacity in GB (inclusive). Setting this excludes unlimited plans.",
+                "Maximum plan data capacity in GB (inclusive, hard filter). Setting this excludes unlimited plans.",
+            },
+            targetDays: {
+              type: "integer",
+              minimum: 1,
+              maximum: 365,
+              description:
+                "Soft hint: preferred trip length in days. Plans near this value rank higher, but no plans are filtered out.",
+            },
+            targetGb: {
+              type: "number",
+              minimum: 0,
+              maximum: 1000,
+              description:
+                "Soft hint: preferred data amount in GB. Plans near this value rank higher, unlimited plans are considered ideal, and no plans are filtered out.",
             },
           },
           required: ["country"],

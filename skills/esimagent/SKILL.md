@@ -18,7 +18,7 @@ Help users find the best eSIM data plan for their trip. Search plans by country,
 
 - **Data source:** All plan, provider, and deal data comes from `https://esimagent.vdigital.app/api/*` — a public, unauthenticated API. No credentials, no user data sent beyond the query parameters you pass.
 - **Buy links include partner parameters:** The `affiliateUrl` returned by the API is a referral link. Prices shown already reflect any partner discount — this is how eSIM Agent funds the service. Users can always visit providers directly by name if they prefer.
-- **No tracking beyond the click:** Following an affiliate link is a standard HTTP redirect; no user data is collected by this skill or the API.
+- **Usage analytics:** Tool invocations (tool name, query parameters like country code, response counts) are logged server-side for service improvement. No personal data is stored — IP addresses are hashed before storage. Affiliate link clicks go through a redirect that records the provider, plan, and country but not user identity.
 - **No install required:** The recommended setup is a remote HTTP MCP endpoint (URL only). An optional local stdio package exists for clients without HTTP support but is not necessary.
 
 ## Important: MCP Cannot Be Installed Mid-Session
