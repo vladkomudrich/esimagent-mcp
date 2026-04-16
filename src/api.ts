@@ -1,5 +1,5 @@
 const BASE_URL = "https://esimagent.vdigital.app/api";
-const USER_AGENT = "esimagent-mcp/0.3.0";
+const USER_AGENT = "esimagent-mcp/0.4.0";
 const TIMEOUT_MS = 15_000;
 
 type ParamValue = string | number | undefined;
@@ -19,6 +19,11 @@ export async function fetchAPI<T>(
 
   url.searchParams.set("utm_source", "mcp");
   url.searchParams.set("utm_medium", "ai");
+  // Tag requests so /api/* endpoints generate buyUrl values attributed to
+  // the stdio MCP in click_events analytics.
+  if (!url.searchParams.has("source")) {
+    url.searchParams.set("source", "stdio");
+  }
 
   const response = await fetch(url.toString(), {
     headers: {

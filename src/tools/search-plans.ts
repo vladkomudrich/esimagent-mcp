@@ -91,7 +91,7 @@ export async function searchPlans(args: SearchPlansArgs): Promise<string> {
       if (plan.features.length > 0) {
         lines.push(`  Features: ${plan.features.join(", ")}`);
       }
-      lines.push(`  Buy: ${plan.affiliateUrl}`);
+      lines.push(`  Buy: ${plan.buyUrl ?? plan.affiliateUrl}`);
       lines.push("");
     }
 

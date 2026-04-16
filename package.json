@@ -1,6 +1,6 @@
 {
   "name": "esimagent-mcp",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "MCP server for eSIM Agent — search eSIM plans, compare providers, check device compatibility, and find deals through AI assistants",
   "license": "MIT",
   "type": "module",

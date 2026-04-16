@@ -27,7 +27,7 @@ export async function listProviders(): Promise<string> {
       if (provider.features.length > 0) {
         lines.push(`  Features: ${provider.features.join(", ")}`);
       }
-      lines.push(`  Website: ${provider.affiliateUrl}`);
+      lines.push(`  Website: ${provider.buyUrl ?? provider.affiliateUrl}`);
       lines.push("");
     }
 

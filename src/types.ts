@@ -12,6 +12,8 @@ export interface Plan {
   priceCurrency: string;
   priceOriginal: number;
   affiliateUrl: string;
+  /** Server-wrapped click-tracking URL. Prefer this for user-facing buy links. */
+  buyUrl?: string;
   features: string[];
   isBestValue?: boolean;
 
@@ -32,6 +34,8 @@ export interface Provider {
   logo: string;
   website: string;
   affiliateUrl: string;
+  /** Server-wrapped click-tracking URL. Prefer this for user-facing links. */
+  buyUrl?: string;
   rating: number;
   features: string[];
 }
@@ -46,6 +50,8 @@ export interface Deal {
   discountValue: number;
   promoCode?: string;
   affiliateUrl: string;
+  /** Server-wrapped click-tracking URL. Prefer this for user-facing claim links. */
+  buyUrl?: string;
   expiresAt?: string;
 }
 

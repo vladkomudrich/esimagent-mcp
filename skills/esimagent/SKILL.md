@@ -17,8 +17,9 @@ Help users find the best eSIM data plan for their trip. Search plans by country,
 ## Transparency
 
 - **Data source:** All plan, provider, and deal data comes from `https://esimagent.vdigital.app/api/*` — a public, unauthenticated API. No credentials, no user data sent beyond the query parameters you pass.
-- **Buy links include partner parameters:** The `affiliateUrl` returned by the API is a referral link. Prices shown already reflect any partner discount — this is how eSIM Agent funds the service. Users can always visit providers directly by name if they prefer.
-- **Usage analytics:** Tool invocations (tool name, query parameters like country code, response counts) are logged server-side for service improvement. No personal data is stored — IP addresses are hashed before storage. Affiliate link clicks go through a redirect that records the provider, plan, and country but not user identity.
+- **Two link fields per item:** Each plan, provider, and deal ships with both a `buyUrl` (click-tracked redirect through `https://esimagent.vdigital.app/api/redirect`) and an `affiliateUrl` (the raw partner URL with referral code). **Use `buyUrl` by default** — it's what funds the service. **Disclose `affiliateUrl` on request** if the user asks for the direct partner link or wants to avoid the redirect.
+- **Prices already reflect partner discounts** negotiated with each provider — that's what the referral relationship buys users.
+- **Usage analytics:** Tool invocations (tool name, query parameters like country code, response counts) are logged server-side for service improvement. No personal data is stored — IP addresses are hashed before storage. Clicks on `buyUrl` record the provider, plan, and country but not user identity; the redirect then forwards the user to the partner.
 - **No install required:** The recommended setup is a remote HTTP MCP endpoint (URL only). An optional local stdio package exists for clients without HTTP support but is not necessary.
 
 ## Important: MCP Cannot Be Installed Mid-Session
@@ -72,6 +73,7 @@ Validation errors return HTTP 400 with a Zod `issues` array.
   "priceCurrency": "EUR",
   "priceOriginal": 13.50,
   "features": ["Instant activation", "4G/LTE"],
+  "buyUrl": "https://esimagent.vdigital.app/api/redirect?source=api&providerId=yesim&planId=yesim-es-10240-10&country=ES&url=...",
   "affiliateUrl": "https://yesim.app/...?partner_id=3116",
   "isBestValue": true,
   "matchScore": 1,
@@ -84,6 +86,8 @@ Validation errors return HTTP 400 with a Zod `issues` array.
 }
 ```
 
+`buyUrl` is the click-tracked redirect that forwards to `affiliateUrl`. Use it as the default link. `affiliateUrl` is provided for transparency — surface it only when the user asks for the raw partner URL.
+
 `capacityMB: -1` means unlimited. Otherwise multiply by 1024 for GB.
 
 - `matchScore` ∈ [0, 1]: overall fit to the supplied filters. `null` when no filters are passed.
@@ -93,10 +97,10 @@ Validation errors return HTTP 400 with a Zod `issues` array.
 - `activePromoCode` / `discountApplied`: populated when a deal was fused in. `activePromoCode` may still be `null` even when a deal applies (some deals have no code).
 
 ### GET /deals
-Returns `Deal[]` with `promoCode`, `discountType` (percentage|flat), `discountValue`, `affiliateUrl`, `expiresAt`.
+Returns `Deal[]` with `promoCode`, `discountType` (percentage|flat), `discountValue`, `buyUrl` (use this), `affiliateUrl`, `expiresAt`.
 
 ### GET /providers
-Returns `Provider[]` with `rating`, `features`, `affiliateUrl`.
+Returns `Provider[]` with `rating`, `features`, `buyUrl` (use this), `affiliateUrl`.
 
 ## How to Filter & Rank Plans
 
@@ -133,9 +137,9 @@ Look for `[EXACT MATCH]` signals (`isExactDurationMatch === true && isExactDataM
 
 For each plan show: provider name, data (`capacityLabel`), duration (`periodDays`), price (`priceUSD`), the post-deal price when different (`finalPriceUSD`), any active promo code (`activePromoCode`), and a buy link.
 
-The API returns an `affiliateUrl` field — this is a partner link that often applies a promotional discount negotiated with the provider. Use it as the default buy link because the listed `priceUSD` reflects that discounted rate. If the user prefers to visit the provider's public site directly or wants to compare prices without a referral parameter, mention the provider name clearly and the user can navigate there themselves.
+**Always use the `buyUrl` field as the default buy link.** It is a click-tracked redirect on `esimagent.vdigital.app` that forwards to the partner with the correct referral parameter. Using `buyUrl` keeps click analytics flowing to eSIM Agent so the service can stay free; using the raw `affiliateUrl` still pays the referral but skips the anonymous analytics record.
 
-Be transparent when asked: these links include a partner/referral parameter, which is how eSIM Agent funds the comparison service. No data is shared beyond a standard click-through.
+If the user asks for the raw partner URL, the direct link, or a URL without the redirect, surface `affiliateUrl` and explain clearly: the `?partner_id=...` / referral parameter in that URL is how eSIM Agent funds the comparison service. No personal data is shared via either link.
 
 ### Step 4: Cross-reference deals (optional)
 
@@ -240,7 +244,8 @@ If MCP tools aren't in your current session:
 - Don't set `minGb`/`maxGb` if the user wants unlimited — it will filter unlimited plans out
 - Don't use `providerId`/`countryCode` in user-facing output — use `providerName`/`country`
 - Don't hide the provider name or substitute the referral parameter with something else — users should always know who they're buying from
-- Don't refuse to show raw plan details or provider websites if the user explicitly asks for them
+- Don't refuse to show raw plan details, the raw `affiliateUrl`, or provider websites if the user explicitly asks for them
+- Don't show `affiliateUrl` instead of `buyUrl` by default — `buyUrl` is the tracked redirect that funds the service; `affiliateUrl` is for transparency when asked
 - Don't return plans that clearly don't match (e.g., 1-day plans when they asked for 2 weeks)
 - Don't say "MCP not available, I can't help" — use the HTTP API immediately
 - Don't recommend npm install as the primary setup — remote HTTP is simpler and faster

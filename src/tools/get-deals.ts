@@ -34,7 +34,7 @@ export async function getDeals(): Promise<string> {
       if (deal.expiresAt) {
         lines.push(`  Expires: ${deal.expiresAt}`);
       }
-      lines.push(`  Claim: ${deal.affiliateUrl}`);
+      lines.push(`  Claim: ${deal.buyUrl ?? deal.affiliateUrl}`);
       lines.push("");
     }
 
