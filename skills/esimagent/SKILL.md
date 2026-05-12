@@ -86,7 +86,7 @@ Validation errors return HTTP 400 with a Zod `issues` array.
 }
 ```
 
-`buyUrl` is a short click-tracked redirect on `esimagent.vdigital.app/r/...` that resolves to the same partner destination as `affiliateUrl`. The plan ID is encoded in the path (with `?s=` marking the click source), and the affiliate URL is looked up server-side from the cached plan catalog at click time — same destination, fewer characters in the response. Use it as the default link. `affiliateUrl` is provided for transparency — surface it only when the user asks for the raw partner URL.
+`buyUrl` is a short click-tracked redirect on `esimagent.vdigital.app/r/...` that resolves to the same partner destination as `affiliateUrl` — i.e. the specific plan page on the partner site, not the partner home. The plan ID is encoded in the path (with `?s=` marking the click source); the affiliate URL is looked up server-side from the cached plan catalog at click time. Use it as the default link. `affiliateUrl` is provided for transparency — surface it only when the user asks for the raw partner URL.
 
 `capacityMB: -1` means unlimited. Otherwise multiply by 1024 for GB.
 
