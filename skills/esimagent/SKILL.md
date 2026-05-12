@@ -17,7 +17,7 @@ Help users find the best eSIM data plan for their trip. Search plans by country,
 ## Transparency
 
 - **Data source:** All plan, provider, and deal data comes from `https://esimagent.vdigital.app/api/*` — a public, unauthenticated API. No credentials, no user data sent beyond the query parameters you pass.
-- **Two link fields per item:** Each plan, provider, and deal ships with both a `buyUrl` (click-tracked redirect through `https://esimagent.vdigital.app/api/redirect`) and an `affiliateUrl` (the raw partner URL with referral code). **Use `buyUrl` by default** — it's what funds the service. **Disclose `affiliateUrl` on request** if the user asks for the direct partner link or wants to avoid the redirect.
+- **Two link fields per item:** Each plan, provider, and deal ships with both a `buyUrl` (short click-tracked redirect on `https://esimagent.vdigital.app/r/...`) and an `affiliateUrl` (the raw partner URL with referral code). The `buyUrl` is a stable short link that resolves server-side to the same partner destination as `affiliateUrl`. **Use `buyUrl` by default** — it's what funds the service and keeps responses readable. **Disclose `affiliateUrl` on request** if the user asks for the direct partner link or wants to avoid the redirect.
 - **Prices already reflect partner discounts** negotiated with each provider — that's what the referral relationship buys users.
 - **Usage analytics:** Tool invocations (tool name, query parameters like country code, response counts) are logged server-side for service improvement. No personal data is stored — IP addresses are hashed before storage. Clicks on `buyUrl` record the provider, plan, and country but not user identity; the redirect then forwards the user to the partner.
 - **No install required:** The recommended setup is a remote HTTP MCP endpoint (URL only). An optional local stdio package exists for clients without HTTP support but is not necessary.
@@ -73,7 +73,7 @@ Validation errors return HTTP 400 with a Zod `issues` array.
   "priceCurrency": "EUR",
   "priceOriginal": 13.50,
   "features": ["Instant activation", "4G/LTE"],
-  "buyUrl": "https://esimagent.vdigital.app/api/redirect?source=api&providerId=yesim&planId=yesim-es-10240-10&country=ES&url=...",
+  "buyUrl": "https://esimagent.vdigital.app/r/yesim-es-10240-10?s=api",
   "affiliateUrl": "https://yesim.app/...?partner_id=3116",
   "isBestValue": true,
   "matchScore": 1,
@@ -86,7 +86,7 @@ Validation errors return HTTP 400 with a Zod `issues` array.
 }
 ```
 
-`buyUrl` is the click-tracked redirect that forwards to `affiliateUrl`. Use it as the default link. `affiliateUrl` is provided for transparency — surface it only when the user asks for the raw partner URL.
+`buyUrl` is a short click-tracked redirect on `esimagent.vdigital.app/r/...` that resolves to the same partner destination as `affiliateUrl`. The plan ID is encoded in the path (with `?s=` marking the click source), and the affiliate URL is looked up server-side from the cached plan catalog at click time — same destination, fewer characters in the response. Use it as the default link. `affiliateUrl` is provided for transparency — surface it only when the user asks for the raw partner URL.
 
 `capacityMB: -1` means unlimited. Otherwise multiply by 1024 for GB.
 
@@ -137,7 +137,7 @@ Look for `[EXACT MATCH]` signals (`isExactDurationMatch === true && isExactDataM
 
 For each plan show: provider name, data (`capacityLabel`), duration (`periodDays`), price (`priceUSD`), the post-deal price when different (`finalPriceUSD`), any active promo code (`activePromoCode`), and a buy link.
 
-**Always use the `buyUrl` field as the default buy link.** It is a click-tracked redirect on `esimagent.vdigital.app` that forwards to the partner with the correct referral parameter. Using `buyUrl` keeps click analytics flowing to eSIM Agent so the service can stay free; using the raw `affiliateUrl` still pays the referral but skips the anonymous analytics record.
+**Always use the `buyUrl` field as the default buy link.** It is a short click-tracked redirect on `esimagent.vdigital.app/r/...` that resolves to the partner URL with the correct referral parameter. The short path keeps responses clean for AI agents; click attribution is recorded server-side. Using `buyUrl` keeps click analytics flowing to eSIM Agent so the service can stay free; using the raw `affiliateUrl` still pays the referral but skips the anonymous analytics record.
 
 If the user asks for the raw partner URL, the direct link, or a URL without the redirect, surface `affiliateUrl` and explain clearly: the `?partner_id=...` / referral parameter in that URL is how eSIM Agent funds the comparison service. No personal data is shared via either link.
 
