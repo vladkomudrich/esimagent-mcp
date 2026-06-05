@@ -4,6 +4,14 @@
   "description": "MCP server for eSIM Agent — search eSIM plans, compare providers, check device compatibility, and find deals through AI assistants",
   "license": "MIT",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vladkomudrich/esimagent-mcp.git"
+  },
+  "homepage": "https://esimagent.vdigital.app/mcp",
+  "bugs": {
+    "url": "https://github.com/vladkomudrich/esimagent-mcp/issues"
+  },
   "bin": {
     "esimagent-mcp": "./dist/index.js"
   },
@@ -17,7 +25,9 @@
     "dev": "tsc --watch",
     "start": "node dist/index.js",
     "prepublishOnly": "npm run build",
-    "test": "vitest run"
+    "test": "vitest run",
+    "skill:sync": "bash scripts/sync-skill.sh",
+    "skill:publish": "bash scripts/sync-skill.sh --publish"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0"
