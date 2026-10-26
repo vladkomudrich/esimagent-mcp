@@ -9,6 +9,8 @@ export interface Plan {
   capacityLabel: string;
   periodDays: number;
   priceUSD: number;
+  /** priceUSD in euros. Absent when the API's FX layer had no rate. */
+  priceEUR?: number;
   priceCurrency: string;
   priceOriginal: number;
   affiliateUrl: string;
@@ -26,6 +28,13 @@ export interface Plan {
   activePromoCode?: string | null;
   discountApplied?: { type: "percentage" | "flat"; value: number } | null;
   finalPriceUSD?: number;
+  /** finalPriceUSD in euros, on the same terms as priceEUR. */
+  finalPriceEUR?: number;
+
+  /** ISO-8601 instant this price was last read from the provider. The API
+   *  serves anything under seven days old without otherwise saying so, so a
+   *  consumer that may not show an undated price needs this field. */
+  fetchedAt?: string;
 }
 
 export interface Provider {
